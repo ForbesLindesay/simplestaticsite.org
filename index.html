@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Static Site</title>
+  </head>
+  <body>
+    <h1>Simple Static Site</h1>
+    <h2>Step 1: Choose a domain name</h2>
+    <p>
+      Start by choosing a domain name and registering it at somewhere like
+      <a href="https://www.123-reg.co.uk">123-reg</a>.
+    </p>
+    <p>
+      You should also decide whether you want visitors to go to <code>www.example.com</code> or just <code>example.com</code>.
+    </p>
+    <h2>Step 2: Create your website</h2>
+    <p>
+      Create a repository called <code>example.com</code> on
+      <a href="https://github.com">GitHub</a>.
+    </p>
+    <p>
+      Add a package.json that has the following contents:
+    </p>
+    <pre><code>{
+  "name": "example.com",
+  "private": true,
+  "description": "An example website",
+  "dependencies": {
+    "express": "^4.13.3"
+  },
+  "devDependencies": {
+    "mandate": "^1.1.0",
+    "rimraf": "^2.5.0",
+    "stop": "^3.0.1"
+  },
+  "scripts": {
+    "test": "echo No Tests",
+    "predeploy": "rimraf out && node stop",
+    "deploy": "mandate out",
+    "postdeploy": "rimraf out"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MY_USER_NAME/example.com.git"
+  }
+}</code></pre>
+    <p>
+      Add a sever.js file containing:
+    </p>
+    <pre><code>'use strict';
+
+var express = require('express');
+
+var app = express();
+
+app.get('/', function (req, res, next) {
+  res.sendFile(__dirname + '/index.html');
+});
+
+module.exports = app.listen(3000);</code></pre>
+    <p>
+      Create an index.html file with whatever content you want in it
+    </p>
+    <p>
+      Create a stop.js file containing:
+    </p>
+    <pre><code>'use strict';
+
+var url = require('url');
+var fs = require('fs');
+var stop = require('stop');
+
+var server = require('./server.js');
+
+
+stop.getWebsiteStream('http://localhost:3000', {
+  filter: function (currentURL) {
+    return url.parse(currentURL).hostname === 'localhost';
+  },
+  parallel: 1
+})
+// un-comment this once you have added a favicon
+//.syphon(stop.addFavicon())
+.syphon(stop.minifyJS())
+.syphon(stop.minifyCSS({deadCode: true, silent: true}))
+.syphon(stop.log())
+.syphon(stop.checkStatusCodes([200]))
+.syphon(stop.writeFileSystem(__dirname + '/out'))
+.wait().done(function () {
+  server.close();
+  console.log('success');
+});</code></pre>
+    <p>
+      Check that it works by running <code>node server</code> and navigating
+      to <a href="http://localhost:3000">http://localhost:3000</a>.
+      Now commit and push that code.
+    </p>
+  </body>
+</html>
