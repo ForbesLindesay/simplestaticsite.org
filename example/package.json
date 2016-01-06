@@ -1,10 +1,8 @@
 {
-  "name": "simplestaticsite.org",
+  "name": "example.com",
   "private": true,
   "description": "A simple static website",
   "dependencies": {
-    "bootstrap": "^3.3.6",
-    "escape-html": "^1.0.3",
     "express": "^4.13.3"
   },
   "devDependencies": {
@@ -18,6 +16,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ForbesLindesay/simplestaticsite.org.git"
+    "url": "https://github.com/my_github_username/example.com.git"
   }
 }

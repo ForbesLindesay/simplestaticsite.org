@@ -2,98 +2,142 @@
 <html>
   <head>
     <title>Simple Static Site</title>
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
-    <h1>Simple Static Site</h1>
-    <h2>Step 1: Choose a domain name</h2>
-    <p>
-      Start by choosing a domain name and registering it at somewhere like
-      <a href="https://www.123-reg.co.uk">123-reg</a>.
-    </p>
-    <p>
-      You should also decide whether you want visitors to go to <code>www.example.com</code> or just <code>example.com</code>.
-    </p>
-    <h2>Step 2: Create your website</h2>
-    <p>
-      Create a repository called <code>example.com</code> on
-      <a href="https://github.com">GitHub</a>.
-    </p>
-    <p>
-      Add a package.json that has the following contents:
-    </p>
-    <pre><code>{
-  "name": "example.com",
-  "private": true,
-  "description": "An example website",
-  "dependencies": {
-    "express": "^4.13.3"
-  },
-  "devDependencies": {
-    "mandate": "^1.1.0",
-    "rimraf": "^2.5.0",
-    "stop": "^3.0.1"
-  },
-  "scripts": {
-    "test": "echo No Tests",
-    "predeploy": "rimraf out && node stop",
-    "deploy": "mandate out",
-    "postdeploy": "rimraf out"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/MY_USER_NAME/example.com.git"
-  }
+    <div class="container">
+      <h1>Simple Static Site</h1>
+      <p>
+        This guide currently assumes you have a GitHub account, an Amazon
+        S3 account and have installed a recent version of node.js.
+      </p>
+      <h2>Step 1: Choose a domain name</h2>
+      <p>
+        Start by choosing a domain name and registering it at somewhere like
+        <a href="https://www.123-reg.co.uk">123-reg</a>.  This guide assumes you have chosen <code>example.com</code> as your domain, so replace that with whatever domain you actually choose.
+      </p>
+      <p>
+        You should also decide whether you want visitors to go to <code>www.example.com</code> or just <code>example.com</code>.  The rest of this
+        guide assumes you have chosen to direct visitors to <code>example.com</code>.
+      </p>
+      <p>
+        Create a cloudflare account and <a href="https://www.cloudflare.com/a/add-site">add your newly created domain</a>.
+      </p>
+      <h2>Step 2: Create your website</h2>
+      <p>
+        Create a repository called <code>example.com</code> on
+        <a href="https://github.com">GitHub</a>.
+      </p>
+      <p>
+        Add a <code>.gitignore</code> that has the following contents:
+      </p>
+      <pre><code><file path="example/.gitignore"/></code></pre>
+      <p>
+        Add a package.json that has the following contents:
+      </p>
+      <pre><code class="language-json"><file path="example/package.json"/></code></pre>
+      <p>Then run <code>npm install</code> to install dependencies.</p>
+      <p>
+        Add a sever.js file containing:
+      </p>
+      <pre><code class="language-js"><file path="example/server.js"/></code></pre>
+      <p>
+        Add an index.html file with whatever content you want in it, e.g.
+      </p>
+      <pre><code class="language-html"><file path="example/index.html"/></code></pre>
+      <p>
+        Check that it works by running <code>node server</code> and navigating
+        to <a href="http://localhost:3000">http://localhost:3000</a>.
+        Now commit and push that code.
+      </p>
+      <h2>Step 3: Set up the bucket</h2>
+      <p>
+        Log in to the <a href="https://aws.amazon.com/console/">AWS Console</a> and select S3, then click the button to create a new bucket.  Enter your domain name as the name of the bucket and select US Standard as the region.
+      </p>
+      <img src="/images/create-bucket.png" width="570" height="274.781"/>
+      <p>
+        Select the newly created bucket and enable static website hosting.
+      </p>
+      <img src="/images/enable-site-hosting.png" width="570" height="396"/>
+      <p>Under the "Perissions" section, edit the bucket policy and set it to:</p>
+      <pre><code class="language-json">{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "AddPerm",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::example.com/*"
+    }
+  ]
 }</code></pre>
-    <p>
-      Add a sever.js file containing:
-    </p>
-    <pre><code>'use strict';
-
-var express = require('express');
-
-var app = express();
-
-app.get('/', function (req, res, next) {
-  res.sendFile(__dirname + '/index.html');
-});
-
-module.exports = app.listen(3000);</code></pre>
-    <p>
-      Create an index.html file with whatever content you want in it
-    </p>
-    <p>
-      Create a stop.js file containing:
-    </p>
-    <pre><code>'use strict';
-
-var url = require('url');
-var fs = require('fs');
-var stop = require('stop');
-
-var server = require('./server.js');
-
-
-stop.getWebsiteStream('http://localhost:3000', {
-  filter: function (currentURL) {
-    return url.parse(currentURL).hostname === 'localhost';
-  },
-  parallel: 1
-})
-// un-comment this once you have added a favicon
-//.syphon(stop.addFavicon())
-.syphon(stop.minifyJS())
-.syphon(stop.minifyCSS({deadCode: true, silent: true}))
-.syphon(stop.log())
-.syphon(stop.checkStatusCodes([200]))
-.syphon(stop.writeFileSystem(__dirname + '/out'))
-.wait().done(function () {
-  server.close();
-  console.log('success');
-});</code></pre>
-    <p>
-      Check that it works by running <code>node server</code> and navigating
-      to <a href="http://localhost:3000">http://localhost:3000</a>.
-      Now commit and push that code.
-    </p>
+      <h2>Step 4: Publishing to Amazon S3</h2>
+      <p>
+        Go to <a href="https://travis-ci.org/profile/">Travis CI</a> and enable
+        it for your repository.  Then click settings.
+      </p>
+      <p>
+        Set the environment variables <code>S3_BUCKET</code> to <code>example.com</code> and <code>S3_REGION</code> to <code>us-east-1</code>.  Be sure to enable "Display value in build log" for both of these as it will make debugging easier.
+      </p>
+      <p>
+        Go to the IAM tool in the <a href="https://aws.amazon.com/console/">AWS Console</a> and create a new user called <code>example.com</code>.  Set the newly created user's access key and secret as the values for <code>S3_KEY</code> and <code>S3_SECRET</code> respectively in the travis environment (be sure not to enable "Display value in build log" as you need to keep these values secret).
+      </p>
+      <p>
+        Attach a new Inline Policy to your user called <code>example.com</code>
+        with the following text:
+      </p>
+      <pre><code class="language-json">{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example.com",
+        "arn:aws:s3:::example.com/*"
+      ]
+    }
+  ]
+}</code></pre>
+      <p>
+        Back in your repository, add a deploy.js file containing:
+      </p>
+      <pre><code class="language-js"><file path="example/deploy.js"/></code></pre>
+      <p>
+        Add a .travis.yml file containing:
+      </p>
+      <pre><code class="language-yaml"><file path="example/.travis.yml"/></code></pre>
+      <p>
+        Commit and push these two new files and your site should get built
+        and uploaded by travis.  You should now be able to see your site at
+        the static endpoint <a href="example.com.s3-website-us-east-1.amazonaws.com">example.com.s3-website-us-east-1.amazonaws.com</a>.
+      </p>
+      <h2>Step 5: Set up cloudflare</h2>
+      <p>
+        Now that you have the site hosted on S3, all that remains is to fix
+        the URL so it is nice and memorable, and add support for https.
+      </p>
+      <p>
+        In cloudflare, edit the DNS records.  First, remove any existing "A" or "CNAME" records, then add two new "CNAME" records:
+      </p>
+      <ul>
+        <li><code>@</code> to <code>example.com.s3-website-us-east-1.amazonaws.com</code></li>
+        <li><code>www</code> to <code>example.com.s3-website-us-east-1.amazonaws.com</code></li>
+      </ul>
+      <p>Ensure cloudflare is enabled for both records</p>
+      <p>Go to "Page Rules" within cloudflare and add two new rules</p>
+      <ul>
+        <li>Pattern <code>http://*example.com/*</code>, then enable "Always use https"</li>
+        <li>Pattern <code>www.example.com/*</code>, then redirect to <code>https://example.com/$1</code></li>
+      </ul>
+      <p>
+        Once those changes have propagated, you should be able to see your
+        website by navigating to <a href="https://example.com/">https://example.com/</a>.  It should also auto
+        update every time you push new changes to GitHub.
+      </p>
+    </div>
+    <script src="/js/prism.js"></script>
   </body>
 </html>
